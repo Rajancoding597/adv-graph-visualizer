@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GraphViz Lab — Visualize Graphs, LeetCode Style</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.0/index.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.0/index.css">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="h-screen flex flex-col">
+  <header class="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 shrink-0">
+    <div class="flex items-center gap-2.5">
+      <div class="logo-box w-9 h-9 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg,#06b6d4,#8b5cf6);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="6" cy="18" r="2.5" /><circle cx="18" cy="18" r="2.5" />
+          <path d="M8 7 L16 17 M16 7 L8 17 M7 8 L7 16 M17 8 L17 16" />
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight">GraphViz Lab</h1>
+        <div class="subtitle text-xs text-slate-400 hidden sm:block">Visualize graphs the LeetCode way</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="desktop-chips hidden md:flex items-center gap-2">
+        <span class="chip"><span class="legend-dot" style="background:#22d3ee"></span>Exploring</span>
+        <span class="chip"><span class="legend-dot" style="background:#34d399"></span>Visited</span>
+        <span class="chip"><span class="legend-dot" style="background:#fbbf24"></span>Current</span>
+        <span class="chip"><span class="legend-dot" style="background:#a78bfa"></span>Path</span>
+      </div>
+      <button id="helpBtn" class="btn btn-ghost" style="min-height:36px;padding:6px 10px;" title="Help">❓</button>
+      <button id="exportBtn" class="btn" style="min-height:36px;padding:6px 10px;">⬇ <span class="hidden sm:inline">Export</span></button>
+    </div>
+  </header>
+
+  <main class="flex-1 flex min-h-0">
+    <aside id="panelInput" class="w-[400px] border-r border-slate-800 flex flex-col min-h-0 mobile-hidden">
+      <div class="desktop-tabs flex gap-1 p-2 border-b border-slate-800">
+        <div class="tab active" data-tab="input">📥 Input</div>
+        <div class="tab" data-tab="algo">🧠 Algorithms</div>
+        <div class="tab" data-tab="examples">✨ Examples</div>
+      </div>
+
+      <div id="tab-input" class="flex-1 overflow-auto scroll p-4 space-y-4">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs uppercase tracking-wider text-slate-400">Node Index Base</label>
+            <select id="base" class="w-full mt-1">
+              <option value="0">0-based (0, 1, 2, ...)</option>
+              <option value="1">1-based (1, 2, 3, ...)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs uppercase tracking-wider text-slate-400">Input Format</label>
+            <select id="format" class="w-full mt-1">
+              <option value="auto">🔍 Auto-detect</option>
+              <option value="adjacency">Adjacency List</option>
+              <option value="edges">Edge List</option>
+              <option value="matrix">Adjacency Matrix</option>
+              <option value="weighted">Weighted Edges</option>
+              <option value="text">Text Format</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-help-toggle" id="helpToggle">
+          <span id="helpToggleIcon">▶</span>
+          <span>What format should I use?</span>
+        </div>
+        <div id="inputHelp" class="hint-box hidden">
+          <div class="mb-2"><strong>🎯 Index Base:</strong></div>
+          <div class="mb-2">• <strong>0-based</strong>: Nodes are 0, 1, 2, ... (LeetCode default)</div>
+          <div class="mb-3">• <strong>1-based</strong>: Nodes are 1, 2, 3, ... (competitive programming)</div>
+          <div class="divider my-2" style="background: rgba(34,211,238,0.2);"></div>
+          <div class="mb-2"><strong>📋 Supported Formats:</strong></div>
+          <div class="mb-1">• <strong>Adjacency List</strong>: <span class="mono text-[11px]">[[1,2],[0,2],[0,1]]</span></div>
+          <div class="mb-1">• <strong>Edge List</strong>: <span class="mono text-[11px]">[[0,1],[1,2],[2,0]]</span></div>
+          <div class="mb-1">• <strong>Matrix</strong>: <span class="mono text-[11px]">[[0,1,1],[1,0,1],[1,1,0]]</span></div>
+          <div class="mb-1">• <strong>Weighted</strong>: <span class="mono text-[11px]">[[0,1,5],[1,2,3]]</span></div>
+          <div class="mb-1">• <strong>Text</strong>: <span class="mono text-[11px]">0-1, 1->2</span></div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs uppercase tracking-wider text-slate-400">Graph Data</label>
+            <div class="flex gap-1">
+              <button id="formatBtn" class="btn btn-ghost text-xs">✨ Format</button>
+              <button id="clearBtn" class="btn btn-ghost text-xs">🗑 Clear</button>
+            </div>
+          </div>
+          <textarea id="input" rows="7" class="w-full text-sm leading-relaxed" spellcheck="false" placeholder='Paste your graph data here. Examples:
+
+Adjacency List (0-based):
+[[1,2],[0,2],[0,1]]
+
+Edge List:
+[[0,1],[1,2],[2,0]]
+
+Weighted Edges:
+[[0,1,4],[0,2,1],[1,2,2]]
+
+Text Format:
+0-1, 1-2, 2-0'></textarea>
+          <div id="parseStatus" class="mt-2 text-xs text-slate-400"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="directed" class="accent-cyan-400"> Directed
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="weighted" class="accent-cyan-400"> Weighted
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="showLabels" checked class="accent-cyan-400"> Node labels
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="showWeights" checked class="accent-cyan-400"> Edge weights
+          </label>
+        </div>
+
+        <button id="renderBtn" class="btn btn-primary w-full justify-center py-3">
+          ▶ Render Graph
+        </button>
+
+        <div class="divider"></div>
+
+        <div>
+          <div class="text-xs uppercase tracking-wider text-slate-400 mb-2">Layout</div>
+          <div class="grid grid-cols-2 gap-2 grid-layout-btns">
+            <button class="btn" data-layout="force">🌀 Force</button>
+            <button class="btn" data-layout="circle">⭕ Circle</button>
+            <button class="btn" data-layout="grid">⊞ Grid</button>
+            <button class="btn" data-layout="radial">🎯 Radial</button>
+            <button class="btn" data-layout="hierarchical">📊 Hierarchical</button>
+            <button class="btn" data-layout="tree">🌳 Tree</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-algo" class="flex-1 overflow-auto scroll p-4 space-y-4 hidden">
+        <div>
+          <label class="text-xs uppercase tracking-wider text-slate-400">Algorithm</label>
+          <select id="algo" class="w-full mt-2"></select>
+        </div>
+        <div id="algoInfo" class="algo-info"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400">Start node</label>
+            <input id="startNode" type="number" value="0" class="w-full mt-1">
+          </div>
+          <div id="endNodeWrap">
+            <label class="text-xs text-slate-400">End node</label>
+            <input id="endNode" type="number" value="0" class="w-full mt-1">
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between">
+            <label class="text-xs text-slate-400">Animation Speed</label>
+            <span id="speedVal" class="text-xs mono text-slate-400">500ms</span>
+          </div>
+          <input id="speed" type="range" min="50" max="2000" value="500" class="w-full accent-cyan-400">
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <button id="runAlgo" class="btn btn-primary justify-center">▶ Run</button>
+          <button id="pauseAlgo" class="btn justify-center" disabled>⏸</button>
+          <button id="stepAlgo" class="btn justify-center">⏭</button>
+          <button id="resetAlgo" class="btn justify-center">↺</button>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-xs uppercase tracking-wider text-slate-400">Execution Trace</div>
+            <button id="clearTrace" class="btn btn-ghost text-xs">Clear</button>
+          </div>
+          <div id="trace" class="mono text-xs bg-[#0b1220] border border-slate-800 rounded-lg p-3 max-h-72 overflow-auto scroll whitespace-pre-wrap text-slate-300 min-h-[100px]">
+            <div class="text-slate-500 italic">Run an algorithm to see the trace here...</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-examples" class="flex-1 overflow-auto scroll p-4 space-y-3 hidden">
+        <div class="text-xs uppercase tracking-wider text-slate-400 mb-1">Classic Graphs</div>
+        <div id="examples" class="space-y-2"></div>
+      </div>
+    </aside>
+
+    <section id="panelGraph" class="graph-section flex-1 relative min-w-0 mobile-hidden">
+      <svg id="graph" class="w-full h-full svg-bg"></svg>
+
+      <div class="floating-chips absolute top-3 left-3 flex flex-wrap gap-2 max-w-md">
+        <span class="chip" id="nodeCount">Nodes: 0</span>
+        <span class="chip" id="edgeCount">Edges: 0</span>
+        <span class="chip" id="componentCount">Components: 0</span>
+        <span class="chip" id="baseChip">Base: 0</span>
+      </div>
+
+      <div class="search-bar absolute top-3 left-1/2 -translate-x-1/2">
+        <input type="text" id="nodeSearch" class="search-input w-48" placeholder="🔍 Search node..." style="background:#0b1220;border:1px solid #1f2937;color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-family:'JetBrains Mono',monospace;">
+      </div>
+
+      <div class="zoom-controls absolute top-3 right-3 flex flex-col gap-2">
+        <button id="zoomIn" class="btn" title="Zoom in" style="min-height:40px;width:40px;padding:0;">＋</button>
+        <button id="zoomOut" class="btn" title="Zoom out" style="min-height:40px;width:40px;padding:0;">－</button>
+        <button id="zoomFit" class="btn" title="Fit to view" style="min-height:40px;width:40px;padding:0;">⤢</button>
+        <button id="centerBtn" class="btn" title="Center graph" style="min-height:40px;width:40px;padding:0;">⊙</button>
+      </div>
+
+      <div class="minimap" id="minimap">
+        <svg id="minimapSvg"></svg>
+      </div>
+
+      <div class="status-bar">
+        <div id="statusLeft">Scroll to zoom · Drag to pan · Drag nodes to reposition</div>
+        <div id="statusRight" class="mono"></div>
+      </div>
+
+      <div id="tooltip" class="absolute pointer-events-none hidden mono text-xs bg-[#0b1220] border border-slate-700 rounded-md px-2 py-1 shadow-lg"></div>
+    </section>
+
+    <aside id="panelStats" class="w-[300px] border-l border-slate-800 flex flex-col min-h-0 mobile-hidden">
+      <div class="p-4 border-b border-slate-800">
+        <div class="text-xs uppercase tracking-wider text-slate-400 mb-2">Graph Properties</div>
+        <div id="props" class="space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-slate-400">Type</span><span id="pType" class="mono">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Connected</span><span id="pConn" class="mono">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Cyclic</span><span id="pCyclic" class="mono">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Bipartite</span><span id="pBip" class="mono">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Density</span><span id="pDensity" class="mono">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">Avg Degree</span><span id="pAvgDeg" class="mono">—</span></div>
+        </div>
+      </div>
+      <div class="p-4 border-b border-slate-800">
+        <div class="text-xs uppercase tracking-wider text-slate-400 mb-2">Adjacency List</div>
+        <pre id="adjList" class="mono text-xs bg-[#0b1220] border border-slate-800 rounded-lg p-3 max-h-48 overflow-auto scroll text-slate-300 whitespace-pre-wrap"></pre>
+      </div>
+      <div class="p-4 flex-1 overflow-auto scroll">
+        <div class="text-xs uppercase tracking-wider text-slate-400 mb-2">Legend</div>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center gap-2"><span class="legend-dot" style="background:#22d3ee"></span> Default node</div>
+          <div class="flex items-center gap-2"><span class="legend-dot" style="background:#34d399"></span> Visited</div>
+          <div class="flex items-center gap-2"><span class="legend-dot" style="background:#fbbf24"></span> Current / In queue</div>
+          <div class="flex items-center gap-2"><span class="legend-dot" style="background:#f87171"></span> Start / End</div>
+          <div class="flex items-center gap-2"><span class="legend-dot" style="background:#a78bfa"></span> Shortest path / Result</div>
+          <div class="flex items-center gap-2"><span class="legend-dot" style="background:#fb923c"></span> MST edge</div>
+        </div>
+        <div class="divider my-4"></div>
+        <div class="text-xs text-slate-400 leading-relaxed">
+          <div class="font-semibold text-slate-300 mb-1">Shortcuts</div>
+          <div class="flex justify-between"><span>Render</span><span class="kbd">Ctrl+Enter</span></div>
+          <div class="flex justify-between"><span>Fit view</span><span class="kbd">F</span></div>
+          <div class="flex justify-between"><span>Center</span><span class="kbd">C</span></div>
+          <div class="flex justify-between"><span>Toggle directed</span><span class="kbd">D</span></div>
+          <div class="flex justify-between"><span>Search node</span><span class="kbd">/</span></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <div class="mobile-nav-item" data-panel="input">
+        <span class="nav-icon">📥</span>
+        <span>Input</span>
+      </div>
+      <div class="mobile-nav-item active" data-panel="graph">
+        <span class="nav-icon">🎨</span>
+        <span>Graph</span>
+      </div>
+      <div class="mobile-nav-item" data-panel="algo">
+        <span class="nav-icon">🧠</span>
+        <span>Algo</span>
+      </div>
+      <div class="mobile-nav-item" data-panel="stats">
+        <span class="nav-icon">📊</span>
+        <span>Stats</span>
+      </div>
+    </div>
+  </nav>
+
+  <div id="helpModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="rounded-xl max-w-2xl w-full max-h-[80vh] overflow-auto scroll p-6" style="background:linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98));border:1px solid #1f2937;">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">📘 GraphViz Lab Help</h2>
+        <button id="closeHelp" class="btn btn-ghost" style="min-height:36px;padding:6px 10px;">✕</button>
+      </div>
+      <div class="space-y-4 text-sm leading-relaxed">
+        <div>
+          <h3 class="font-semibold text-cyan-300 mb-1">🎯 Index Base</h3>
+          <p class="text-slate-300">Choose whether your nodes are <strong>0-based</strong> (0, 1, 2, ...) or <strong>1-based</strong> (1, 2, 3, ...). Most LeetCode problems use 0-based indexing.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-cyan-300 mb-1">📋 Input Formats</h3>
+          <ul class="list-disc list-inside text-slate-300 space-y-1">
+            <li><strong>Adjacency List</strong>: Array of arrays where index = node, values = neighbors</li>
+            <li><strong>Edge List</strong>: Array of [u, v] pairs</li>
+            <li><strong>Matrix</strong>: Square matrix where matrix[i][j] = 1 means edge i→j</li>
+            <li><strong>Weighted</strong>: Array of [u, v, weight] triples</li>
+            <li><strong>Text</strong>: Lines like "0-1" or "0->1" or "0-1:5"</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-cyan-300 mb-1">🧠 Algorithms</h3>
+          <p class="text-slate-300">13 algorithms across 5 categories: Traversal, Shortest Path, MST, Topological Sort, and Advanced.</p>
+        </div>
+        <div>
+          <h3 class="font-semibold text-cyan-300 mb-1">📱 Mobile Tips</h3>
+          <ul class="list-disc list-inside text-slate-300 space-y-1">
+            <li>Use the bottom nav to switch between panels</li>
+            <li>Pinch to zoom the graph</li>
+            <li>Tap and drag nodes to reposition</li>
+            <li>Use the search bar to find specific nodes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
